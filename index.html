@@ -72,15 +72,21 @@
           </div>
         </div>
 
-        <!-- 搜尋列 -->
+        <!-- 搜尋列（含一鍵清空按鈕） -->
         <div class="mb-2">
-          <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="relative flex items-center">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <circle cx="11" cy="11" r="8" stroke-width="2"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2" stroke-linecap="round"></line>
             </svg>
             <input v-model="searchQuery" type="text" placeholder="搜尋類別、飾品或備註名稱..."
-                   class="w-full pl-9 pr-4 py-2 bg-white text-stone-800 rounded-xl text-xs placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 border border-stone-200 shadow-inner">
+                   class="w-full pl-9 pr-9 py-2 bg-white text-stone-800 rounded-xl text-xs placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 border border-stone-200 shadow-inner">
+            <button v-if="searchQuery" @click="searchQuery = ''" type="button" title="清除搜尋"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-full w-5 h-5 flex items-center justify-center transition">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -184,7 +190,7 @@
               </div>
               <div class="flex flex-wrap gap-2 justify-start">
                 <button v-for="(color, idx) in group.pikmins" :key="idx"
-                        @click="cyclePikminStatus(item.id, group.id, color, idx)"
+                        @click="cyclePikminStatus(item, group, color, idx)"
                         class="flex flex-col items-center gap-0.5">
                   <div class="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all"
                        :style="getPikminCircleStyle(item.id, group.id, color, idx)">
@@ -212,7 +218,7 @@
           <!-- 無分組顯示 -->
           <div v-else class="flex flex-wrap gap-2 justify-center">
             <button v-for="(color, idx) in item.pikmins" :key="idx"
-                    @click="cyclePikminStatus(item.id, null, color, idx)"
+                    @click="cyclePikminStatus(item, null, color, idx)"
                     class="flex flex-col items-center gap-0.5">
               <div class="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all"
                    :style="getPikminCircleStyle(item.id, null, color, idx)">
@@ -241,10 +247,10 @@
   </div>
 
   <script>
-    // 🌟 1. 填入你的 Gist Raw 網址
+    // 🌟 1. Gist Raw 網址
     const DEX_GIST_URL = 'https://gist.githubusercontent.com/DelWish-GH/f4080c092fd81b66c71d80dc11a0883f/raw/pikmin_dex.json';
 
-    // 🌟 2. 填入 Firebase Console 取得的設定
+    // 🌟 2. Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyBF7r0qiC57xnnCW3CVsGfs38g6l-aWw4o",
       authDomain: "pikmin-user-dex.firebaseapp.com",
@@ -326,30 +332,59 @@
               } finally {
                 isSyncing.value = false;
               }
-            }, 600); // 避免頻繁點擊過度寫入
+            }, 600);
+          }
+        };
+
+        // 🌟 自動資料庫遷移：將舊格式 (無序號) 自動對齊到新格式 (帶序號)
+        const migrateOldData = () => {
+          if (!decorDatabase.value || decorDatabase.value.length === 0) return;
+          let changed = false;
+          decorDatabase.value.forEach(item => {
+            if (item.groups) {
+              item.groups.forEach(g => {
+                g.pikmins.forEach((color, idx) => {
+                  const oldKey = `${item.id}_${g.id}_${color}`;
+                  const newKey = `${item.id}_${g.id}_${color}_${idx}`;
+                  if (progressMap.value[oldKey] !== undefined && progressMap.value[newKey] === undefined) {
+                    progressMap.value[newKey] = progressMap.value[oldKey];
+                    changed = true;
+                  }
+                });
+              });
+            } else if (item.pikmins) {
+              item.pikmins.forEach((color, idx) => {
+                const oldKey = `${item.id}_${color}`;
+                const newKey = `${item.id}_${color}_${idx}`;
+                if (progressMap.value[oldKey] !== undefined && progressMap.value[newKey] === undefined) {
+                  progressMap.value[newKey] = progressMap.value[oldKey];
+                  changed = true;
+                }
+              });
+            }
+          });
+          if (changed) {
+            saveProgress();
           }
         };
 
         // 監聽 Auth 狀態與拉取雲端存檔
         onMounted(async () => {
-          // 1. 先讀取本地快取
           const saved = localStorage.getItem('pikmin_dex_progress');
           if (saved) {
             try { progressMap.value = JSON.parse(saved); } catch (e) {}
           }
 
-          // 2. 監聽 Google 登入狀態
           auth.onAuthStateChanged(async (user) => {
             currentUser.value = user;
             if (user) {
               try {
                 const doc = await db.collection('user_progress').doc(user.uid).get();
                 if (doc.exists && doc.data().progress) {
-                  // 雲端進度優先覆蓋或合併
                   progressMap.value = { ...progressMap.value, ...doc.data().progress };
                   localStorage.setItem('pikmin_dex_progress', JSON.stringify(progressMap.value));
+                  migrateOldData();
                 } else {
-                  // 若雲端無資料，則將現有本地進度上傳
                   saveProgress();
                 }
               } catch (e) {
@@ -358,18 +393,18 @@
             }
           });
 
-          // 3. 載入 Gist 圖鑑資料
+          // 載入 Gist 圖鑑資料
           try {
             const res = await fetch(DEX_GIST_URL);
             const textData = await res.text();
             
-            // 自動清理陣列及物件結尾多餘的逗號 (Trailing Commas)
             const cleanedText = textData
               .replace(/,\s*\]/g, ']')
               .replace(/,\s*\}/g, '}');
 
             const data = JSON.parse(cleanedText);
             decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
+            migrateOldData();
           } catch (e) {
             console.error('Gist fetch error:', e);
           } finally {
@@ -377,19 +412,37 @@
           }
         });
 
-        // 加入 idx 區分同色多款
         const getKey = (decorId, groupId, color, idx) => {
           return groupId ? `${decorId}_${groupId}_${color}_${idx}` : `${decorId}_${color}_${idx}`;
         };
 
+        // 🌟 讀取狀態：優先讀取新 Key，如果沒有則自動向下相容讀取舊 Key
         const getPikminStatus = (decorId, groupId, color, idx) => {
-          return progressMap.value[getKey(decorId, groupId, color, idx)] || 0;
+          const newKey = getKey(decorId, groupId, color, idx);
+          if (progressMap.value[newKey] !== undefined) {
+            return progressMap.value[newKey];
+          }
+          // 向下相容支援：讀取舊格式
+          const oldKey = groupId ? `${decorId}_${groupId}_${color}` : `${decorId}_${color}`;
+          return progressMap.value[oldKey] || 0;
         };
 
-        const cyclePikminStatus = (decorId, groupId, color, idx) => {
-          const key = getKey(decorId, groupId, color, idx);
-          const current = progressMap.value[key] || 0;
-          progressMap.value[key] = (current + 1) % 4;
+        // 狀態切換：依據類別與名稱判斷是否為 2 態切換 (0 ⇄ 3)
+        const cyclePikminStatus = (item, group, color, idx) => {
+          const groupId = group ? group.id : null;
+          const key = getKey(item.id, groupId, color, idx);
+          const current = getPikminStatus(item.id, groupId, color, idx);
+
+          const isTwoStage = (item.category !== 'normal') ||
+                             (item.name && item.name.includes('稀有')) ||
+                             (group && group.name && group.name.includes('稀有'));
+
+          if (isTwoStage) {
+            progressMap.value[key] = (current === 3) ? 0 : 3;
+          } else {
+            progressMap.value[key] = (current + 1) % 4;
+          }
+
           saveProgress();
         };
 
