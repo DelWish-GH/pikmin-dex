@@ -155,21 +155,23 @@
               </span>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-              <template v-if="isCardComplete(item)">
-                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                  ✨ 完成
-                </span>
-              </template>
-              <template v-else>
-                <button @click="fillCard(item)"
-                        class="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition">
-                  填滿
-                </button>
-                <span class="font-mono text-xs font-bold text-stone-500">
-                  {{ getCardProgress(item).collected }}/{{ getCardProgress(item).total }}
-                </span>
-              </template>
+            <!-- 卡片操作按鈕 (填滿 / 清空 / 進度) -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button @click="fillCard(item)"
+                      class="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition font-medium">
+                填滿
+              </button>
+              <button @click="clearCard(item)"
+                      class="text-[10px] px-2 py-0.5 bg-stone-100 text-stone-600 border border-stone-200 rounded-md hover:bg-stone-200 transition font-medium">
+                清空
+              </button>
+
+              <span v-if="isCardComplete(item)" class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 ml-0.5">
+                ✨ 完成
+              </span>
+              <span v-else class="font-mono text-xs font-bold text-stone-500 min-w-[32px] text-right ml-0.5">
+                {{ getCardProgress(item).collected }}/{{ getCardProgress(item).total }}
+              </span>
             </div>
           </div>
 
@@ -190,25 +192,25 @@
               </div>
               <div class="flex flex-wrap gap-2 justify-start">
                 <button v-for="(color, idx) in group.pikmins" :key="idx"
-                        @click="cyclePikminStatus(item, group, color, idx)"
+                        @click="cyclePikminStatus(item, group, group.pikmins, idx)"
                         class="flex flex-col items-center gap-0.5">
                   <div class="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all"
-                       :style="getPikminCircleStyle(item.id, group.id, color, idx)">
-                    <svg viewBox="0 0 24 24" class="w-4 h-4 absolute -top-2" :class="getPikminStatus(item.id, group.id, color, idx) === 0 ? 'opacity-30' : 'opacity-100'">
-                      <path d="M12 2C8 2 6 6 6 8c0 2 2 4 6 4s6-2 6-4c0-2-2-6-6-6z" :fill="getPikminStatus(item.id, group.id, color, idx) === 0 ? '#9ca3af' : '#48bb78'" stroke="#2f855a" stroke-width="0.5"></path>
+                       :style="getPikminCircleStyle(item.id, group.id, group.pikmins, idx)">
+                    <svg viewBox="0 0 24 24" class="w-4 h-4 absolute -top-2" :class="getPikminStatus(item.id, group.id, group.pikmins, idx) === 0 ? 'opacity-30' : 'opacity-100'">
+                      <path d="M12 2C8 2 6 6 6 8c0 2 2 4 6 4s6-2 6-4c0-2-2-6-6-6z" :fill="getPikminStatus(item.id, group.id, group.pikmins, idx) === 0 ? '#9ca3af' : '#48bb78'" stroke="#2f855a" stroke-width="0.5"></path>
                       <line x1="12" y1="8" x2="12" y2="14" stroke="#2f855a" stroke-width="1"></line>
                     </svg>
                     <div class="flex gap-1.5 mt-1">
-                      <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, group.id, color, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
-                      <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, group.id, color, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
+                      <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, group.id, group.pikmins, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
+                      <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, group.id, group.pikmins, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
                     </div>
-                    <div v-if="getPikminStatus(item.id, group.id, color, idx) === 1" class="absolute -top-1 -right-1 w-4 h-4 bg-lime-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🌱</div>
-                    <div v-else-if="getPikminStatus(item.id, group.id, color, idx) === 2" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🥚</div>
-                    <div v-else-if="getPikminStatus(item.id, group.id, color, idx) === 3" class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white text-white text-[8px] font-bold shadow-sm">✓</div>
+                    <div v-if="getPikminStatus(item.id, group.id, group.pikmins, idx) === 1" class="absolute -top-1 -right-1 w-4 h-4 bg-lime-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🌱</div>
+                    <div v-else-if="getPikminStatus(item.id, group.id, group.pikmins, idx) === 2" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🥚</div>
+                    <div v-else-if="getPikminStatus(item.id, group.id, group.pikmins, idx) === 3" class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white text-white text-[8px] font-bold shadow-sm">✓</div>
                   </div>
                   <span class="text-[10px] font-bold leading-tight" :style="{ color: pikminColorMeta[color]?.textColor }">{{ pikminColorMeta[color]?.label || color }}</span>
-                  <span class="text-[8px] leading-tight" :class="getStatusTextColorClass(getPikminStatus(item.id, group.id, color, idx))">
-                    {{ getStatusText(getPikminStatus(item.id, group.id, color, idx)) }}
+                  <span class="text-[8px] leading-tight" :class="getStatusTextColorClass(getPikminStatus(item.id, group.id, group.pikmins, idx))">
+                    {{ getStatusText(getPikminStatus(item.id, group.id, group.pikmins, idx)) }}
                   </span>
                 </button>
               </div>
@@ -218,25 +220,25 @@
           <!-- 無分組顯示 -->
           <div v-else class="flex flex-wrap gap-2 justify-center">
             <button v-for="(color, idx) in item.pikmins" :key="idx"
-                    @click="cyclePikminStatus(item, null, color, idx)"
+                    @click="cyclePikminStatus(item, null, item.pikmins, idx)"
                     class="flex flex-col items-center gap-0.5">
               <div class="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all"
-                   :style="getPikminCircleStyle(item.id, null, color, idx)">
-                <svg viewBox="0 0 24 24" class="w-4 h-4 absolute -top-2" :class="getPikminStatus(item.id, null, color, idx) === 0 ? 'opacity-30' : 'opacity-100'">
-                  <path d="M12 2C8 2 6 6 6 8c0 2 2 4 6 4s6-2 6-4c0-2-2-6-6-6z" :fill="getPikminStatus(item.id, null, color, idx) === 0 ? '#9ca3af' : '#48bb78'" stroke="#2f855a" stroke-width="0.5"></path>
+                   :style="getPikminCircleStyle(item.id, null, item.pikmins, idx)">
+                <svg viewBox="0 0 24 24" class="w-4 h-4 absolute -top-2" :class="getPikminStatus(item.id, null, item.pikmins, idx) === 0 ? 'opacity-30' : 'opacity-100'">
+                  <path d="M12 2C8 2 6 6 6 8c0 2 2 4 6 4s6-2 6-4c0-2-2-6-6-6z" :fill="getPikminStatus(item.id, null, item.pikmins, idx) === 0 ? '#9ca3af' : '#48bb78'" stroke="#2f855a" stroke-width="0.5"></path>
                   <line x1="12" y1="8" x2="12" y2="14" stroke="#2f855a" stroke-width="1"></line>
                 </svg>
                 <div class="flex gap-1.5 mt-1">
-                  <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, null, color, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
-                  <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, null, color, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
+                  <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, null, item.pikmins, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
+                  <div class="w-1.5 h-2 rounded-full" :class="getPikminStatus(item.id, null, item.pikmins, idx) === 0 ? 'bg-stone-500' : 'bg-stone-900'"></div>
                 </div>
-                <div v-if="getPikminStatus(item.id, null, color, idx) === 1" class="absolute -top-1 -right-1 w-4 h-4 bg-lime-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🌱</div>
-                <div v-else-if="getPikminStatus(item.id, null, color, idx) === 2" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🥚</div>
-                <div v-else-if="getPikminStatus(item.id, null, color, idx) === 3" class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white text-white text-[8px] font-bold shadow-sm">✓</div>
+                <div v-if="getPikminStatus(item.id, null, item.pikmins, idx) === 1" class="absolute -top-1 -right-1 w-4 h-4 bg-lime-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🌱</div>
+                <div v-else-if="getPikminStatus(item.id, null, item.pikmins, idx) === 2" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white text-[9px] shadow-sm">🥚</div>
+                <div v-else-if="getPikminStatus(item.id, null, item.pikmins, idx) === 3" class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white text-white text-[8px] font-bold shadow-sm">✓</div>
               </div>
               <span class="text-[10px] font-bold leading-tight" :style="{ color: pikminColorMeta[color]?.textColor }">{{ pikminColorMeta[color]?.label || color }}</span>
-              <span class="text-[8px] leading-tight" :class="getStatusTextColorClass(getPikminStatus(item.id, null, color, idx))">
-                {{ getStatusText(getPikminStatus(item.id, null, color, idx)) }}
+              <span class="text-[8px] leading-tight" :class="getStatusTextColorClass(getPikminStatus(item.id, null, item.pikmins, idx))">
+                {{ getStatusText(getPikminStatus(item.id, null, item.pikmins, idx)) }}
               </span>
             </button>
           </div>
@@ -336,38 +338,6 @@
           }
         };
 
-        // 🌟 自動資料庫遷移：將舊格式 (無序號) 自動對齊到新格式 (帶序號)
-        const migrateOldData = () => {
-          if (!decorDatabase.value || decorDatabase.value.length === 0) return;
-          let changed = false;
-          decorDatabase.value.forEach(item => {
-            if (item.groups) {
-              item.groups.forEach(g => {
-                g.pikmins.forEach((color, idx) => {
-                  const oldKey = `${item.id}_${g.id}_${color}`;
-                  const newKey = `${item.id}_${g.id}_${color}_${idx}`;
-                  if (progressMap.value[oldKey] !== undefined && progressMap.value[newKey] === undefined) {
-                    progressMap.value[newKey] = progressMap.value[oldKey];
-                    changed = true;
-                  }
-                });
-              });
-            } else if (item.pikmins) {
-              item.pikmins.forEach((color, idx) => {
-                const oldKey = `${item.id}_${color}`;
-                const newKey = `${item.id}_${color}_${idx}`;
-                if (progressMap.value[oldKey] !== undefined && progressMap.value[newKey] === undefined) {
-                  progressMap.value[newKey] = progressMap.value[oldKey];
-                  changed = true;
-                }
-              });
-            }
-          });
-          if (changed) {
-            saveProgress();
-          }
-        };
-
         // 監聽 Auth 狀態與拉取雲端存檔
         onMounted(async () => {
           const saved = localStorage.getItem('pikmin_dex_progress');
@@ -383,7 +353,6 @@
                 if (doc.exists && doc.data().progress) {
                   progressMap.value = { ...progressMap.value, ...doc.data().progress };
                   localStorage.setItem('pikmin_dex_progress', JSON.stringify(progressMap.value));
-                  migrateOldData();
                 } else {
                   saveProgress();
                 }
@@ -404,7 +373,6 @@
 
             const data = JSON.parse(cleanedText);
             decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
-            migrateOldData();
           } catch (e) {
             console.error('Gist fetch error:', e);
           } finally {
@@ -412,26 +380,29 @@
           }
         });
 
-        const getKey = (decorId, groupId, color, idx) => {
-          return groupId ? `${decorId}_${groupId}_${color}_${idx}` : `${decorId}_${color}_${idx}`;
+        // 🌟 核心演算法：以「顏色 + 出現序號」為 Key，即使中間插入新皮克敏也絕不影響其他顏色
+        const getKey = (decorId, groupId, pikminsArray, idx) => {
+          const color = pikminsArray[idx];
+          let colorOccurrence = 0;
+          for (let i = 0; i < idx; i++) {
+            if (pikminsArray[i] === color) {
+              colorOccurrence++;
+            }
+          }
+          const base = groupId ? `${decorId}_${groupId}` : decorId;
+          return `${base}_${color}_${colorOccurrence}`;
         };
 
-        // 🌟 讀取狀態：優先讀取新 Key，如果沒有則自動向下相容讀取舊 Key
-        const getPikminStatus = (decorId, groupId, color, idx) => {
-          const newKey = getKey(decorId, groupId, color, idx);
-          if (progressMap.value[newKey] !== undefined) {
-            return progressMap.value[newKey];
-          }
-          // 向下相容支援：讀取舊格式
-          const oldKey = groupId ? `${decorId}_${groupId}_${color}` : `${decorId}_${color}`;
-          return progressMap.value[oldKey] || 0;
+        const getPikminStatus = (decorId, groupId, pikminsArray, idx) => {
+          const key = getKey(decorId, groupId, pikminsArray, idx);
+          return progressMap.value[key] || 0;
         };
 
         // 狀態切換：依據類別與名稱判斷是否為 2 態切換 (0 ⇄ 3)
-        const cyclePikminStatus = (item, group, color, idx) => {
+        const cyclePikminStatus = (item, group, pikminsArray, idx) => {
           const groupId = group ? group.id : null;
-          const key = getKey(item.id, groupId, color, idx);
-          const current = getPikminStatus(item.id, groupId, color, idx);
+          const key = getKey(item.id, groupId, pikminsArray, idx);
+          const current = getPikminStatus(item.id, groupId, pikminsArray, idx);
 
           const isTwoStage = (item.category !== 'normal') ||
                              (item.name && item.name.includes('稀有')) ||
@@ -446,16 +417,33 @@
           saveProgress();
         };
 
+        // 一鍵填滿卡片
         const fillCard = (item) => {
           if (item.groups) {
             item.groups.forEach(g => {
               g.pikmins.forEach((c, idx) => {
-                progressMap.value[getKey(item.id, g.id, c, idx)] = 3;
+                progressMap.value[getKey(item.id, g.id, g.pikmins, idx)] = 3;
               });
             });
           } else if (item.pikmins) {
             item.pikmins.forEach((c, idx) => {
-              progressMap.value[getKey(item.id, null, c, idx)] = 3;
+              progressMap.value[getKey(item.id, null, item.pikmins, idx)] = 3;
+            });
+          }
+          saveProgress();
+        };
+
+        // 🌟 一鍵清空卡片
+        const clearCard = (item) => {
+          if (item.groups) {
+            item.groups.forEach(g => {
+              g.pikmins.forEach((c, idx) => {
+                progressMap.value[getKey(item.id, g.id, g.pikmins, idx)] = 0;
+              });
+            });
+          } else if (item.pikmins) {
+            item.pikmins.forEach((c, idx) => {
+              progressMap.value[getKey(item.id, null, item.pikmins, idx)] = 0;
             });
           }
           saveProgress();
@@ -467,13 +455,13 @@
             item.groups.forEach(g => {
               total += g.pikmins.length;
               g.pikmins.forEach((c, idx) => { 
-                if (getPikminStatus(item.id, g.id, c, idx) === 3) collected++; 
+                if (getPikminStatus(item.id, g.id, g.pikmins, idx) === 3) collected++; 
               });
             });
           } else if (item.pikmins) {
             total = item.pikmins.length;
             item.pikmins.forEach((c, idx) => { 
-              if (getPikminStatus(item.id, null, c, idx) === 3) collected++; 
+              if (getPikminStatus(item.id, null, item.pikmins, idx) === 3) collected++; 
             });
           }
           const percent = total > 0 ? Math.round((collected / total) * 100) : 0;
@@ -485,8 +473,9 @@
           return p.total > 0 && p.collected === p.total;
         };
 
-        const getPikminCircleStyle = (decorId, groupId, color, idx) => {
-          const status = getPikminStatus(decorId, groupId, color, idx);
+        const getPikminCircleStyle = (decorId, groupId, pikminsArray, idx) => {
+          const status = getPikminStatus(decorId, groupId, pikminsArray, idx);
+          const color = pikminsArray[idx];
           const meta = pikminColorMeta[color] || { bg: '#cbd5e1' };
           if (status === 0) return { backgroundColor: 'rgb(209, 213, 219)', borderColor: 'rgb(156, 163, 175)', filter: 'grayscale(100%)' };
           if (status === 1) return { backgroundColor: meta.bg, borderColor: meta.bg, opacity: 0.65 };
@@ -516,12 +505,12 @@
             if (item.groups) {
               item.groups.forEach(g => {
                 g.pikmins.forEach((c, idx) => { 
-                  if (getPikminStatus(item.id, g.id, c, idx) === 3) count++; 
+                  if (getPikminStatus(item.id, g.id, g.pikmins, idx) === 3) count++; 
                 });
               });
             } else if (item.pikmins) {
               item.pikmins.forEach((c, idx) => { 
-                if (getPikminStatus(item.id, null, c, idx) === 3) count++; 
+                if (getPikminStatus(item.id, null, item.pikmins, idx) === 3) count++; 
               });
             }
           });
@@ -549,7 +538,7 @@
           pikminColorMeta, decorDatabase, progressMap, currentStatusFilter, searchQuery,
           statusTabs, isLoading, currentUser, isSyncing, handleLogin, handleLogout,
           totalDecorSlots, collectedDecorCount, totalProgressPercent, filteredDecorList,
-          getPikminStatus, cyclePikminStatus, fillCard, getCardProgress, isCardComplete,
+          getPikminStatus, cyclePikminStatus, fillCard, clearCard, getCardProgress, isCardComplete,
           getPikminCircleStyle, getStatusText, getStatusTextColorClass, getCategoryLabel, getCategoryBadgeClass
         };
       }
