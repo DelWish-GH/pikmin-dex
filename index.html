@@ -362,22 +362,22 @@
             }
           });
 
-          // 載入 Gist 圖鑑資料
-          try {
-            const res = await fetch(DEX_GIST_URL);
-            const textData = await res.text();
-            
-            const cleanedText = textData
-              .replace(/,\s*\]/g, ']')
-              .replace(/,\s*\}/g, '}');
+			 // 載入 Gist 圖鑑資料（加入防快取參數）
+			try {
+			  const res = await fetch(`${DEX_GIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
+			  const textData = await res.text();
+			  
+			  const cleanedText = textData
+				.replace(/,\s*\]/g, ']')
+				.replace(/,\s*\}/g, '}');
 
-            const data = JSON.parse(cleanedText);
-            decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
-          } catch (e) {
-            console.error('Gist fetch error:', e);
-          } finally {
-            isLoading.value = false;
-          }
+			  const data = JSON.parse(cleanedText);
+			  decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
+			} catch (e) {
+			  console.error('Gist fetch error:', e);
+			} finally {
+			  isLoading.value = false;
+			}
         });
 
         // 🌟 核心演算法：以「顏色 + 出現序號」為 Key，即使中間插入新皮克敏也絕不影響其他顏色
