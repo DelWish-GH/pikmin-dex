@@ -148,7 +148,8 @@
           
           <div class="flex items-center justify-between mb-1">
             <div class="flex items-center gap-1.5 min-w-0">
-              <span class="text-lg">{{ item.icon || '🌿' }}</span>
+              <!-- 動態圖示 -->
+              <span class="text-base select-none">{{ getItemIcon(item) }}</span>
               <span class="font-bold text-stone-800 text-sm truncate">{{ item.name }}</span>
               <span :class="getCategoryBadgeClass(item.category)" class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0">
                 {{ getCategoryLabel(item.category) }}
@@ -315,7 +316,7 @@
           }
         };
 
-        // 儲存進度（同時寫入 LocalStorage 與 Firestore 雲端）
+        // 儲存進度
         let saveTimeout = null;
         const saveProgress = () => {
           localStorage.setItem('pikmin_dex_progress', JSON.stringify(progressMap.value));
@@ -338,7 +339,7 @@
           }
         };
 
-        // 監聽 Auth 狀態與拉取雲端存檔
+        // 監聽 Auth 與防快取載入 Gist
         onMounted(async () => {
           const saved = localStorage.getItem('pikmin_dex_progress');
           if (saved) {
@@ -362,32 +363,30 @@
             }
           });
 
-			 // 載入 Gist 圖鑑資料（加入防快取參數）
-			try {
-			  const res = await fetch(`${DEX_GIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
-			  const textData = await res.text();
-			  
-			  const cleanedText = textData
-				.replace(/,\s*\]/g, ']')
-				.replace(/,\s*\}/g, '}');
+          // 載入 Gist 圖鑑資料（加入防快取 timestamp）
+          try {
+            const res = await fetch(`${DEX_GIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
+            const textData = await res.text();
+            
+            const cleanedText = textData
+              .replace(/,\s*\]/g, ']')
+              .replace(/,\s*\}/g, '}');
 
-			  const data = JSON.parse(cleanedText);
-			  decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
-			} catch (e) {
-			  console.error('Gist fetch error:', e);
-			} finally {
-			  isLoading.value = false;
-			}
+            const data = JSON.parse(cleanedText);
+            decorDatabase.value = Array.isArray(data) ? data : (data.content || []);
+          } catch (e) {
+            console.error('Gist fetch error:', e);
+          } finally {
+            isLoading.value = false;
+          }
         });
 
-        // 🌟 核心演算法：以「顏色 + 出現序號」為 Key，即使中間插入新皮克敏也絕不影響其他顏色
+        // 核心演算法：顏色 + 出現序號
         const getKey = (decorId, groupId, pikminsArray, idx) => {
           const color = pikminsArray[idx];
           let colorOccurrence = 0;
           for (let i = 0; i < idx; i++) {
-            if (pikminsArray[i] === color) {
-              colorOccurrence++;
-            }
+            if (pikminsArray[i] === color) colorOccurrence++;
           }
           const base = groupId ? `${decorId}_${groupId}` : decorId;
           return `${base}_${color}_${colorOccurrence}`;
@@ -398,7 +397,7 @@
           return progressMap.value[key] || 0;
         };
 
-        // 狀態切換：依據類別與名稱判斷是否為 2 態切換 (0 ⇄ 3)
+        // 狀態切換
         const cyclePikminStatus = (item, group, pikminsArray, idx) => {
           const groupId = group ? group.id : null;
           const key = getKey(item.id, groupId, pikminsArray, idx);
@@ -417,7 +416,6 @@
           saveProgress();
         };
 
-        // 一鍵填滿卡片
         const fillCard = (item) => {
           if (item.groups) {
             item.groups.forEach(g => {
@@ -433,7 +431,6 @@
           saveProgress();
         };
 
-        // 🌟 一鍵清空卡片
         const clearCard = (item) => {
           if (item.groups) {
             item.groups.forEach(g => {
@@ -481,6 +478,14 @@
           if (status === 1) return { backgroundColor: meta.bg, borderColor: meta.bg, opacity: 0.65 };
           if (status === 2) return { backgroundColor: meta.bg, borderColor: meta.bg, opacity: 1 };
           return { backgroundColor: meta.bg, borderColor: 'rgb(22, 163, 74)', boxShadow: '0 0 0 2px rgb(187, 247, 208)', opacity: 1 };
+        };
+
+        // 動態圖示判斷
+        const getItemIcon = (item) => {
+          if (item.name && item.name.includes('稀有')) return '⭐';
+          if (item.category === 'event') return '🎉';
+          if (item.category === 'special') return '💎';
+          return '🌿';
         };
 
         const getStatusText = (status) => ['—', '苗', '孵出', '飾品'][status] || '—';
@@ -539,7 +544,7 @@
           statusTabs, isLoading, currentUser, isSyncing, handleLogin, handleLogout,
           totalDecorSlots, collectedDecorCount, totalProgressPercent, filteredDecorList,
           getPikminStatus, cyclePikminStatus, fillCard, clearCard, getCardProgress, isCardComplete,
-          getPikminCircleStyle, getStatusText, getStatusTextColorClass, getCategoryLabel, getCategoryBadgeClass
+          getItemIcon, getPikminCircleStyle, getStatusText, getStatusTextColorClass, getCategoryLabel, getCategoryBadgeClass
         };
       }
     }).mount('#app');
